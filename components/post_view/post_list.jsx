@@ -17,6 +17,7 @@ import * as UserAgent from 'utils/user_agent.jsx';
 import * as Utils from 'utils/utils.jsx';
 import {isFromWebhook} from 'utils/post_utils.jsx';
 
+import Confetti from 'components/confetti.jsx';
 import LoadingScreen from 'components/loading_screen.jsx';
 import DateSeparator from 'components/post_view/date_separator.jsx';
 
@@ -78,6 +79,11 @@ export default class PostList extends React.PureComponent {
          */
         isReadOnly: PropTypes.bool.isRequired,
 
+        /**
+         * Whether the current user is system admin
+         */
+        isCurrentUserSystemAdmin: PropTypes.bool.isRequired,
+
         actions: PropTypes.shape({
 
             /**
@@ -123,6 +129,7 @@ export default class PostList extends React.PureComponent {
         this.atBottom = false;
 
         this.extraPagesLoaded = 0;
+        this.checkConfetti = true;
 
         this.state = {
             atEnd: false,
@@ -130,6 +137,7 @@ export default class PostList extends React.PureComponent {
             isDoingInitialLoad: true,
             isScrolling: false,
             lastViewed: props.lastViewedAt,
+            showConfetti: false,
         };
     }
 
@@ -170,8 +178,9 @@ export default class PostList extends React.PureComponent {
                 this.atBottom = false;
 
                 this.extraPagesLoaded = 0;
+                this.checkConfetti = true;
 
-                this.setState({atEnd: false, lastViewed: nextProps.lastViewedAt, isDoingInitialLoad: !nextProps.posts, unViewedCount: 0});
+                this.setState({atEnd: false, lastViewed: nextProps.lastViewedAt, isDoingInitialLoad: !nextProps.posts, unViewedCount: 0, showConfetti: false});
 
                 if (nextChannel.id) {
                     this.loadPosts(nextChannel.id);
@@ -189,6 +198,12 @@ export default class PostList extends React.PureComponent {
     }
 
     componentDidUpdate(prevProps, prevState) {
+        if (this.state.showConfetti && !prevState.showConfetti) {
+            setTimeout(() => {
+                this.setState({showConfetti: false, lastViewed: new Date().getTime()});
+            }, 10000);
+            return;
+        }
         this.loadPostsToFillScreenIfNecessary();
 
         // Do not update scrolling unless posts, visibility or intro message change
@@ -338,11 +353,14 @@ export default class PostList extends React.PureComponent {
             if (post.create_at > this.state.lastViewed &&
                 post.user_id !== currentUserId &&
                 post.state !== Constants.POST_DELETED) {
+                if (!this.checkConfetti && this.props.isReadOnly && post.message.startsWith('#celebrate')) {
+                    this.checkConfetti = false;
+                }
                 return count + 1;
             }
             return count;
         }, 0);
-        this.setState({unViewedCount});
+        this.setState({unViewedCount, showConfetti: !this.checkConfetti});
     }
 
     handleScrollStop = () => {
@@ -551,36 +569,41 @@ export default class PostList extends React.PureComponent {
             }
 
             const isNotCurrentUser = post.user_id !== currentUserId || isFromWebhook(post);
-            if (isNotCurrentUser &&
-                    lastViewed !== 0 &&
-                    post.create_at > lastViewed &&
-                    !Utils.isPostEphemeral(post) &&
-                    !renderedLastViewed) {
-                renderedLastViewed = true;
 
-                // Temporary fix to solve ie11 rendering issue
-                let newSeparatorId = '';
-                if (!UserAgent.isInternetExplorer()) {
-                    newSeparatorId = 'new_message_' + post.id;
+            if (lastViewed !== 0 &&
+                    post.create_at > lastViewed &&
+                    !Utils.isPostEphemeral(post)) {
+                if (this.checkConfetti && (this.props.isCurrentUserSystemAdmin || this.props.isReadOnly) && post.message.startsWith('#celebrate')) {
+                    this.checkConfetti = false;
+                    this.setState({showConfetti: true});
                 }
-                postCtls.push(
-                    <div
-                        id={newSeparatorId}
-                        key='unviewed'
-                        ref='newMessageSeparator'
-                        className='new-separator'
-                    >
-                        <hr
-                            className='separator__hr'
-                        />
-                        <div className='separator__text'>
-                            <FormattedMessage
-                                id='posts_view.newMsg'
-                                defaultMessage='New Messages'
+                if (isNotCurrentUser && !renderedLastViewed) {
+                    renderedLastViewed = true;
+
+                    // Temporary fix to solve ie11 rendering issue
+                    let newSeparatorId = '';
+                    if (!UserAgent.isInternetExplorer()) {
+                        newSeparatorId = 'new_message_' + post.id;
+                    }
+                    postCtls.push(
+                        <div
+                            id={newSeparatorId}
+                            key='unviewed'
+                            ref='newMessageSeparator'
+                            className='new-separator'
+                        >
+                            <hr
+                                className='separator__hr'
                             />
+                            <div className='separator__text'>
+                                <FormattedMessage
+                                    id='posts_view.newMsg'
+                                    defaultMessage='New Messages'
+                                />
+                            </div>
                         </div>
-                    </div>
-                );
+                    );
+                }
             }
 
             postCtls.push(postCtl);
@@ -686,6 +709,7 @@ export default class PostList extends React.PureComponent {
                         </div>
                     </div>
                 </div>
+                {this.state.showConfetti && <Confetti/>}
             </div>
         );
     }
