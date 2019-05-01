@@ -129,7 +129,7 @@ export default class PostList extends React.PureComponent {
         this.atBottom = false;
 
         this.extraPagesLoaded = 0;
-        this.checkConfetti = true;
+        this.lastConfetti = null;
 
         this.state = {
             atEnd: false,
@@ -179,6 +179,7 @@ export default class PostList extends React.PureComponent {
 
                 this.extraPagesLoaded = 0;
                 this.checkConfetti = true;
+                this.lastConfetti = null;
 
                 this.setState({atEnd: false, lastViewed: nextProps.lastViewedAt, isDoingInitialLoad: !nextProps.posts, unViewedCount: 0, showConfetti: false});
 
@@ -198,11 +199,10 @@ export default class PostList extends React.PureComponent {
     }
 
     componentDidUpdate(prevProps, prevState) {
-        if (this.state.showConfetti && !prevState.showConfetti) {
+        if (!prevState.showConfetti && this.state.showConfetti) {
             setTimeout(() => {
-                this.setState({showConfetti: false, lastViewed: new Date().getTime()});
-            }, 10000);
-            return;
+                this.setState({showConfetti: false});
+            }, 20000);
         }
         this.loadPostsToFillScreenIfNecessary();
 
@@ -353,14 +353,11 @@ export default class PostList extends React.PureComponent {
             if (post.create_at > this.state.lastViewed &&
                 post.user_id !== currentUserId &&
                 post.state !== Constants.POST_DELETED) {
-                if (!this.checkConfetti && this.props.isReadOnly && post.message.startsWith('#celebrate')) {
-                    this.checkConfetti = false;
-                }
                 return count + 1;
             }
             return count;
         }, 0);
-        this.setState({unViewedCount, showConfetti: !this.checkConfetti});
+        this.setState({unViewedCount});
     }
 
     handleScrollStop = () => {
@@ -535,6 +532,7 @@ export default class PostList extends React.PureComponent {
         const lastViewed = this.props.lastViewedAt || 0;
 
         let renderedLastViewed = false;
+        let showConfetti = false;
 
         for (let i = posts.length - 1; i >= 0; i--) {
             const post = posts[i];
@@ -573,9 +571,12 @@ export default class PostList extends React.PureComponent {
             if (lastViewed !== 0 &&
                     post.create_at > lastViewed &&
                     !Utils.isPostEphemeral(post)) {
-                if (this.checkConfetti && (this.props.isCurrentUserSystemAdmin || this.props.isReadOnly) && post.message.startsWith('#celebrate')) {
-                    this.checkConfetti = false;
-                    this.setState({showConfetti: true});
+                if (!showConfetti &&
+                    post.create_at > this.lastConfetti &&
+                    (this.props.isCurrentUserSystemAdmin || this.props.isReadOnly) &&
+                    post.message.startsWith('#celebrate')) {
+                    showConfetti = true;
+                    this.lastConfetti = post.create_at;
                 }
                 if (isNotCurrentUser && !renderedLastViewed) {
                     renderedLastViewed = true;
@@ -608,6 +609,9 @@ export default class PostList extends React.PureComponent {
 
             postCtls.push(postCtl);
             previousPostDay = currentPostDay;
+        }
+        if (showConfetti) {
+            this.setState({showConfetti});
         }
 
         return postCtls;

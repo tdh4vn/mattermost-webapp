@@ -42,7 +42,7 @@ export default class Confetti extends React.PureComponent {
         };
 
         return (
-            <div id='confetti-wrapper'>
+            <div className='confetti-wrapper'>
                 <ConfettiElements/>
             </div>
         );
