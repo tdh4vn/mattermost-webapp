@@ -40,7 +40,7 @@ function mapStateToProps(state) {
     }
 
     const isReadOnly = !channel || !config.ReadOnlyChannels ? false :
-        !isCurrentUserSystemAdmin(state) && config.ReadOnlyChannels.split(',').includes(channel.name);
+        config.ReadOnlyChannels.split(',').includes(channel.name);
 
     return {
         channelId: channel ? channel.id : '',
@@ -50,6 +50,7 @@ function mapStateToProps(state) {
         lastViewedChannelName,
         viewArchivedChannels,
         isReadOnly,
+        isCurrentUserSystemAdmin: isCurrentUserSystemAdmin(state),
     };
 }
 

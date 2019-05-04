@@ -266,6 +266,13 @@ export async function joinChannel(channel, success, error) {
         success(data);
     } else if (err && error) {
         error({id: err.server_error_id, ...err});
+    } else {
+        error({
+            message: 'Failed to add user to channel because they are not allowed into broadcast only channel.',
+            server_error_id: 'api.channel.add_user.to.channel.failed.not_allowed.app_error',
+            status_code: 400,
+            url: '/api/v4/channels/8p83qnjzn3yp7f4gtw75qqfqow/members',
+        });
     }
 }
 

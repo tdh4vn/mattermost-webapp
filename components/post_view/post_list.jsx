@@ -552,7 +552,7 @@ export default class PostList extends React.PureComponent {
                     post={post}
                     lastPostCount={(i >= 0 && i < Constants.TEST_ID_COUNT) ? i : -1}
                     getPostList={this.getPostList}
-                    isReadOnly={this.props.isReadOnly}
+                    isReadOnly={this.props.isReadOnly && !this.props.isCurrentUserSystemAdmin}
                 />
             );
 
@@ -571,9 +571,8 @@ export default class PostList extends React.PureComponent {
             if (lastViewed !== 0 &&
                     post.create_at > lastViewed &&
                     !Utils.isPostEphemeral(post)) {
-                if (!showConfetti &&
+                if (!showConfetti && this.props.isReadOnly &&
                     post.create_at > this.lastConfetti &&
-                    (this.props.isCurrentUserSystemAdmin || this.props.isReadOnly) &&
                     post.message.startsWith('#celebrate')) {
                     showConfetti = true;
                     this.lastConfetti = post.create_at;
@@ -642,7 +641,7 @@ export default class PostList extends React.PureComponent {
                 <CreateChannelIntroMessage
                     channel={channel}
                     fullWidth={this.props.fullWidth}
-                    isReadOnly={this.props.isReadOnly}
+                    isReadOnly={this.props.isReadOnly && !this.props.isCurrentUserSystemAdmin}
                 />
             );
         } else if (this.props.postVisibility >= Constants.MAX_POST_VISIBILITY) {

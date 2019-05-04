@@ -31,6 +31,7 @@ export default class ChannelView extends React.PureComponent {
         viewArchivedChannels: PropTypes.bool.isRequired,
         lastViewedChannelName: PropTypes.string.isRequired,
         isReadOnly: PropTypes.bool.isRequired,
+        isCurrentUserSystemAdmin: PropTypes.bool.isRequired,
     };
 
     constructor(props) {
@@ -100,7 +101,7 @@ export default class ChannelView extends React.PureComponent {
     }
 
     render() {
-        const {channelIsArchived, isReadOnly} = this.props;
+        const {channelIsArchived, isReadOnly, isCurrentUserSystemAdmin} = this.props;
         if (this.props.showTutorial) {
             return (
                 <TutorialView
@@ -110,7 +111,7 @@ export default class ChannelView extends React.PureComponent {
         }
 
         let createPost;
-        if (!isReadOnly) {
+        if (!isReadOnly || isCurrentUserSystemAdmin) {
             if (this.props.deactivatedChannel) {
                 createPost = (
                     <div
@@ -166,7 +167,7 @@ export default class ChannelView extends React.PureComponent {
                 <FileUploadOverlay overlayType='center'/>
                 <ChannelHeader
                     channelId={this.props.channelId}
-                    isReadOnly={isReadOnly}
+                    isReadOnly={isReadOnly && !isCurrentUserSystemAdmin}
                 />
                 <DeferredPostView
                     channelId={this.props.channelId}
